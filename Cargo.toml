@@ -1,0 +1,20 @@
+[package]
+name = "csky"
+version = "0.0.1"
+edition = "2024"
+authors = ["Jinwoo Park <pmnxis@gmail.com>"]
+license = "MIT OR Apache-2.0"
+description = "Experimental C-SKY architecture support primitives"
+documentation = "https://docs.rs/csky"
+repository = "https://github.com/pmnxis/csky"
+readme = "README.md"
+categories = ["embedded", "hardware-support", "no-std"]
+keywords = ["csky", "embedded", "interrupt", "register"]
+
+[features]
+default = []
+critical-section-single-core = ["dep:critical-section"]
+llvm-asm-bootstrap = []
+
+[dependencies]
+critical-section = { version = "1.2", optional = true, features = ["restore-state-bool"] }
