@@ -54,6 +54,16 @@ csky_arch_interrupt_disable:
     jmp16 r15
     .size csky_arch_interrupt_disable, . - csky_arch_interrupt_disable
 
+    .section .text.csky_arch_enable_wait, "ax"
+    .align 2
+    .globl csky_arch_enable_wait
+    .type csky_arch_enable_wait, %function
+csky_arch_enable_wait:
+    .short 0xc080, 0x7420 /* psrset ie */
+    .short 0xc000, 0x4c20 /* wait32 */
+    jmp16 r15
+    .size csky_arch_enable_wait, . - csky_arch_enable_wait
+
     .section .text.csky_arch_read_psr, "ax"
     .align 2
     .globl csky_arch_read_psr
@@ -157,6 +167,7 @@ unsafe extern "C" {
     fn csky_arch_interrupt_acquire() -> u32;
     fn csky_arch_interrupt_enable();
     fn csky_arch_interrupt_disable();
+    fn csky_arch_enable_wait();
     fn csky_arch_read_psr() -> u32;
     fn csky_arch_read_vbr() -> u32;
     fn csky_arch_write_vbr(value: u32);
@@ -348,6 +359,27 @@ pub mod asm {
     pub fn wait() {
         // SAFETY: the instruction resumes only on a configured wake event.
         unsafe { core::arch::asm!("wait32", options(nomem, nostack, preserves_flags)) }
+    }
+
+    /// Enables maskable interrupts and waits for an interrupt.
+    ///
+    /// This intentionally emits adjacent `psrset ie` and `wait32` instructions.
+    /// It is useful on systems that provide a recurring wake interrupt. It does
+    /// not make a one-shot wake source race-free: an interrupt serviced between
+    /// the two instructions can otherwise be lost before the CPU sleeps.
+    ///
+    /// # Safety
+    ///
+    /// The caller must enter with maskable interrupts disabled, must ensure
+    /// that they may be enabled, and must configure a recurring interrupt so a
+    /// wake event remains guaranteed even if one event occurs immediately before
+    /// `wait32`. A valid vector table must already exist.
+    #[cfg(target_arch = "csky")]
+    #[inline]
+    pub unsafe fn enable_wait() {
+        super::compiler_barrier_impl();
+        unsafe { super::csky_arch_enable_wait() }
+        super::compiler_barrier_impl();
     }
 }
 

@@ -42,7 +42,7 @@ when an scheduler owns interrupt masking or when some interrupts must remain ena
 
 ```toml
 [dependencies]
-csky = { version = "0.0.1", features = [
+csky = { version = "0.0.2", features = [
     "llvm-asm-bootstrap",
     "critical-section-single-core",
 ] }
@@ -55,6 +55,10 @@ csky = { version = "0.0.1", features = [
 - `asm::sync()` emits `sync32` and also prevents compiler reordering.
 - `asm::wait()` emits `wait32`; configuring a valid wake source remains the
   responsibility of the device runtime or HAL.
+- `unsafe asm::enable_wait()` emits adjacent interrupt-enable and `wait32`
+  instructions. It is intended for executor idle paths that have disabled
+  interrupts, rechecked their work flag, and configured a recurring wake IRQ.
+  It is not a race-free primitive for a one-shot wake source.
 
 The crate intentionally does not expose ARM-named DMB, DSB, or ISB guarantees
 until equivalent semantics are established for the relevant C-SKY profiles.
